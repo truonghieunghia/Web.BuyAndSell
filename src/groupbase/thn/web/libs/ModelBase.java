@@ -25,15 +25,15 @@ import javax.servlet.http.Part;
 public abstract class ModelBase {
 	private RequestDispatcher mDispatcher;
 	private String mPathView = "/";
-	protected HttpServletRequest mRequest;
-	protected HttpServletResponse mResponse;
+	private HttpServletRequest mRequest;
+	private HttpServletResponse mResponse;
 	protected PrintWriter mPrintWriter;
 	protected String mContentType = "text/plain; charset=utf-8";
 	private ServletContext mServletContext;
 
-	protected ModelBase(ServletContext servletContext, HttpServletRequest request,
+	public ModelBase( HttpServletRequest request,
 			HttpServletResponse response) throws IOException {
-		mServletContext = servletContext;
+
 		mRequest = request;
 		mResponse = response;
 		mResponse.setContentType(mContentType);
