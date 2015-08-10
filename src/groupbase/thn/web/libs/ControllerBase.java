@@ -681,18 +681,18 @@ public abstract class ControllerBase<M extends ModelBase> extends GenericServlet
 		} catch (ClassCastException e) {
 			throw new ServletException("non-HTTP request or response");
 		}
-		createModel(mRequest, mResponse);
+		createModel(mRequest);
 		service(mRequest, mResponse);
 		
 	}
 
-	private void createModel(HttpServletRequest request, HttpServletResponse response) {
+	private void createModel(HttpServletRequest request) {
 		@SuppressWarnings("unchecked")
 		Class<M> obj = (Class<M>) ((ParameterizedType) this.getClass().getGenericSuperclass())
 				.getActualTypeArguments()[0];
 		try {
-			Model = obj.getConstructor( HttpServletRequest.class, HttpServletResponse.class)
-					.newInstance( request, response);
+			Model = obj.getConstructor( HttpServletRequest.class)
+					.newInstance( request);
 //			Model= obj.getDeclaredConstructor(HttpServletRequest.class, HttpServletResponse.class).newInstance(request, response);
 		} catch (IllegalArgumentException e) {
 			// TODO Auto-generated catch block

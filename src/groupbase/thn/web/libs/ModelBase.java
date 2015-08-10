@@ -1,69 +1,81 @@
 package groupbase.thn.web.libs;
 
-
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.PrintWriter;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import javax.servlet.RequestDispatcher;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.Part;
 
 public abstract class ModelBase {
-	private RequestDispatcher mDispatcher;
-	private String mPathView = "/";
 	private HttpServletRequest mRequest;
-	private HttpServletResponse mResponse;
-	protected PrintWriter mPrintWriter;
-	protected String mContentType = "text/plain; charset=utf-8";
-	private ServletContext mServletContext;
 
 	public ModelBase( HttpServletRequest request,
 			HttpServletResponse response) throws IOException {
 
 		mRequest = request;
-		mResponse = response;
-		mResponse.setContentType(mContentType);
-		mPrintWriter = mResponse.getWriter();
 
 	}
+	private String getPathRoot() {
+		return mRequest.getServletContext().getRealPath("");
+	}
 
-	protected void viewResult(String viewName) {
-		mDispatcher = mServletContext.getRequestDispatcher(
-				getPath() + viewName + ".jsp");
+	private <T> T paserStringToType(String str, Class<T> clazz) {
+		Object value = null;
+		if (clazz.equals(String.class)) {
+			value = str;
+		}
+		if (clazz.equals(Integer.class)) {
+			value = Integer.parseInt(str);
+		}
+		if (clazz.equals(Float.class)) {
+			value = Float.parseFloat(str);
+		}
+		return clazz.cast(value);
+	}
+	protected <T> T getDataPost(Class<T> formData) {
 		try {
-			mDispatcher.forward(mRequest, mResponse);
-		} catch (ServletException e) {
-			// TODO Auto-generated catch block
+			List<Field> fields = new ArrayList<Field>();
+			fields.addAll(Arrays.asList(formData.getDeclaredFields()));
+			Object result = formData.newInstance();
+
+			for (Field field : fields) {
+				field.setAccessible(true);
+				FormAnnotation formAnnotation = field
+						.getAnnotation(FormAnnotation.class);
+				if (formAnnotation != null) {
+					String[] value = mRequest.getParameterValues(formAnnotation
+							.Name());
+
+					if (value != null) {
+						if (value.length == 1) {
+							if (value[0].trim().length() == 0) {
+								field.set(result, null);
+							} else {
+								field.set(
+										result,
+										paserStringToType(value[0],
+												formAnnotation.FieldType()));
+							}
+						} else {
+							field.set(result, value);
+						}
+					}
+				}
+			}
+			return formData.cast(result);
+		} catch (Exception e) {
 			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return null;
 		}
 	}
-
-	protected void Redirect(String url) {
-		try {
-			this.mResponse.sendRedirect(url);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-
 	protected String getFileName(final Part part) {
 
 		for (String content : part.getHeader("content-disposition").split(";")) {
@@ -157,111 +169,7 @@ public abstract class ModelBase {
 			return null;
 		}
 	}
-
-	protected void outString(String text) {
-		mPrintWriter.println(text);
-	}
-
-	private <T> T paserStringToType(String str, Class<T> clazz) {
-		Object value = null;
-		if (clazz.equals(String.class)) {
-			value = str;
-		}
-		if (clazz.equals(Integer.class)) {
-			value = Integer.parseInt(str);
-		}
-		if (clazz.equals(Float.class)) {
-			value = Float.parseFloat(str);
-		}
-		return clazz.cast(value);
-	}
-
-	protected <T> T getDataPost(Class<T> formData) {
-		try {
-			List<Field> fields = new ArrayList<Field>();
-			fields.addAll(Arrays.asList(formData.getDeclaredFields()));
-			Object result = formData.newInstance();
-
-			for (Field field : fields) {
-				field.setAccessible(true);
-				FormAnnotation formAnnotation = field
-						.getAnnotation(FormAnnotation.class);
-				if (formAnnotation != null) {
-					String[] value = mRequest.getParameterValues(formAnnotation
-							.Name());
-
-					if (value != null) {
-						if (value.length == 1) {
-							if (value[0].trim().length() == 0) {
-								field.set(result, null);
-							} else {
-								field.set(
-										result,
-										paserStringToType(value[0],
-												formAnnotation.FieldType()));
-							}
-						} else {
-							field.set(result, value);
-						}
-					}
-				}
-			}
-			return formData.cast(result);
-		} catch (Exception e) {
-			e.printStackTrace();
-			return null;
-		}
-	}
-
-
-
-	protected <T> T getQueryStringObject(Class<T> object) {
-		return null;
-	}
-
-	protected String getPathRoot() {
-		return mRequest.getServletContext().getRealPath("");
-	}
-
-	protected String outTextFromFile(String pathFile) {
-		try {
-			FileInputStream fis = new FileInputStream(getPathRoot() + pathFile);
-			InputStreamReader isr = new InputStreamReader(fis);
-			BufferedReader reader = new BufferedReader(isr);
-			String line = null;
-			String result = "";
-			while ((line = reader.readLine()) != null) {
-				result = result + line;
-			}
-			reader.close();
-			fis.close();
-			isr.close();
-			return result;
-		} catch (Exception e) {
-			e.printStackTrace();
-			return "";
-		}
-
-	}
-
 	protected void putData(String key, Object data) {
 		mRequest.setAttribute(key, data);
 	}
-
-	private String getPath() {		
-		if (mServletContext.getInitParameter("View") == null) {
-			return mPathView;
-		}
-		if (mPathView.length() == 1) {
-			return mServletContext.getInitParameter("View");
-		} else {
-			return mPathView;
-		}
-	}
-
-	protected void setPathView(String pathView) {
-		mPathView = pathView;
-	}
-
-	public abstract void defaultView();
 }

@@ -15,10 +15,5 @@ public class TestModel extends ModelBase{
 		// TODO Auto-generated constructor stub
 	}
 
-	@Override
-	public void defaultView() {
-		// TODO Auto-generated method stub
-		
-	}
 
 }
